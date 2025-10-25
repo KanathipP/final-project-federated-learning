@@ -10,7 +10,8 @@ from sklearn.base import TransformerMixin, BaseEstimator
 
 mne.set_log_level("ERROR")
 
-DATASET_DIR = Path("../../0-raw-data/motor-imaginary")
+BASE_DIR = Path(__file__).resolve().parent
+DATASET_DIR = Path(BASE_DIR / "../../0-raw-data/motor-imaginary")
 EXTRACT_DIR = Path(DATASET_DIR / "data")
 
 def download_and_extract_motor_imaginery_data():
