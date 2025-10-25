@@ -3,5 +3,5 @@ __pycache__/
 */__pycache__/
 
 #Ignore data (it's too big)
-/0-raw-data/01-motor-imaginery/BCICIV_2a_gdf.zip
-/0-raw-data/01-motor-imaginery/data
+/0-raw-data/motor-imaginery/BCICIV_2a_gdf.zip
+/0-raw-data/motor-imaginery/data
