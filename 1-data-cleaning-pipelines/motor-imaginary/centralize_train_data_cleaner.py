@@ -9,7 +9,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.base import TransformerMixin, BaseEstimator
 
 
-DATASET_DIR = Path("../../0-raw-data/motor-imaginery")
+DATASET_DIR = Path("../../0-raw-data/motor-imaginary")
 EXTRACT_DIR = Path(DATASET_DIR / "data")
 
 def download_and_extract_motor_imaginery_data():
