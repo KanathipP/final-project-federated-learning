@@ -69,7 +69,7 @@ def cleanup_file(path: Path) -> None:
 # ===============================
 def download_and_extract_data(delete_zip: bool = False) -> None:
     """Full pipeline: download → extract → optional cleanup"""
-    tag = "[Pipeline]"
+    tag = "[Fetcher]"
     print(f"{tag} Starting data preparation...")
     DATA_DIR.mkdir(exist_ok=True)
     download_file(URL, ZIP_FILE)

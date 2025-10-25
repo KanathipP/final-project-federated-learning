@@ -8,6 +8,7 @@ from sklearn.model_selection import GroupKFold, LeaveOneGroupOut
 from sklearn.preprocessing import StandardScaler
 from sklearn.base import TransformerMixin, BaseEstimator
 
+mne.set_log_level("ERROR")
 
 DATASET_DIR = Path("../../0-raw-data/motor-imaginary")
 EXTRACT_DIR = Path(DATASET_DIR / "data")
