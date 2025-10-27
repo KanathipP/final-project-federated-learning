@@ -72,7 +72,7 @@ def pipeline():
 
     features,labels,groups=[],[],[]
     for i in range(1,10):
-        feature,label=read_data(Path(EXTRACT_DIR/ f'A0{i}T.gdf'))
+        feature,label=read_data(Path(EXTRACT_DIR/ f'A0{i}E.gdf'))
         features.append(feature)
         labels.append(label)
         groups.append([i]*len(label))
@@ -82,25 +82,13 @@ def pipeline():
     groups = np.concatenate(groups)
     features = np.moveaxis(features, 1, 2)
 
-    accuracy = []
-    gkf = GroupKFold()
-    for train_index, val_index in gkf.split(features, labels, groups):
-        train_features, train_labels =  features[train_index], labels[train_index]
-        val_features, val_labels = features[val_index], labels[val_index]
-        scaler = StandardScaler3D()
-        train_features = scaler.fit_transform(train_features)
-        val_features = scaler.transform(val_features)
-        train_features = np.moveaxis(train_features, 1, 2)
-        val_features = np.moveaxis(val_features, 1, 2)
+    scaler = StandardScaler3D()
+    features = scaler.fit_transform(features)
+    features = np.moveaxis(features, 1, 2)
 
-        break
+    test_features = torch.Tensor(features)
+    test_labels = torch.Tensor(labels)
 
-    train_features = torch.Tensor(train_features)
-    val_features = torch.Tensor(val_features)
-    train_labels = torch.Tensor(train_labels)
-    val_labels = torch.Tensor(val_labels)
+    test_labels = remap_np(test_labels)
 
-    train_labels = remap_np(train_labels)
-    val_labels   = remap_np(val_labels)
-
-    return train_features, train_labels, val_features, val_labels
+    return test_features, test_labels
