@@ -1,0 +1,57 @@
+version: "3"
+
+env:
+  BORDER: double
+  BORDER_FOREGROUND: "212"
+  PADDING: "1 1"
+  MARGIN: "1 1"
+
+tasks:
+  copy-motor-imaginary-data:
+    desc: "📦 Copy raw motor imaginary .gdf files into {app_name}/data/{1..9}/"
+    cmds:
+      # STEP 1: เลือกโฟลเดอร์ผ่าน gum choose (clean UI, ไม่มี echo script ยาว ๆ)
+      - cmd: |
+          DIRS=($(ls -d */ 2>/dev/null | sed 's:/$::'))
+
+          if [ ${#DIRS[@]} -eq 0 ]; then
+            gum style "❌ No directories found in current folder. Create your flwr app folder first."
+            exit 1
+          fi
+
+          APP_NAME=$(printf "%s\n" "${DIRS[@]}" | gum choose --cursor-prefix "👉 " --header "📂 Select FLWR app directory")
+
+          echo "$APP_NAME" > .task_app_name
+        silent: true
+
+      # STEP 2: กล่องสวย ๆ บอกปลายทาง
+      - cmd: |
+          APP_NAME=$(cat .task_app_name)
+          gum style \
+            --border $BORDER \
+            --border-foreground $BORDER_FOREGROUND \
+            --margin "$MARGIN" \
+            --padding "$PADDING" \
+            "📂 Preparing to copy raw EEG data into \"$APP_NAME/data/{1..9}/\""
+        silent: true
+
+      # STEP 3: สปินระหว่าง copy
+      - cmd: |
+          APP_NAME=$(cat .task_app_name)
+          gum spin --spinner dot --title "Copying data into $APP_NAME/data/ ..." -- \
+            python ./motor_imaginary_data_splitter.py "$APP_NAME"
+        silent: true
+
+      # STEP 4: สรุปจบ
+      - cmd: |
+          APP_NAME=$(cat .task_app_name)
+          gum style \
+            --border $BORDER \
+            --border-foreground $BORDER_FOREGROUND \
+            --margin "$MARGIN" \
+            --padding "$PADDING" \
+            "✅ Done! Copied raw motor imagery data into \"$APP_NAME/data/\""
+        silent: true
+
+      # STEP 5: cleanup temp file
+      - rm -f .task_app_name
