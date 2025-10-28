@@ -42,7 +42,7 @@ tasks:
       - cmd: |
           APP_NAME=$(cat .task_app_name)
           gum spin --spinner dot --title "Copying data into $APP_NAME/data/ ..." -- \
-            python .motor_imaginary_data_splitter.py "$APP_NAME"
+            python ./motor_imaginary_data_splitter.py "$APP_NAME"
         silent: true
 
       # STEP 4: Display a success message upon completion
