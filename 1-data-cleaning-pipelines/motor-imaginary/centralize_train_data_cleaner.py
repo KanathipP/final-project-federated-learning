@@ -4,7 +4,7 @@ import numpy as np
 import mne
 import torch
 import importlib
-from sklearn.model_selection import GroupKFold, LeaveOneGroupOut
+from sklearn.model_selection import GroupShuffleSplit
 from sklearn.preprocessing import StandardScaler
 from sklearn.base import TransformerMixin, BaseEstimator
 
@@ -81,26 +81,38 @@ def pipeline():
     labels = np.concatenate(labels)
     groups = np.concatenate(groups)
     features = np.moveaxis(features, 1, 2)
+    
+    gss_test = GroupShuffleSplit(n_splits=1,test_size=0.2, random_state=42)
+    train_val_index, test_index = next(gss_test.split(features, labels, groups))
 
-    accuracy = []
-    gkf = GroupKFold()
-    for train_index, val_index in gkf.split(features, labels, groups):
-        train_features, train_labels =  features[train_index], labels[train_index]
-        val_features, val_labels = features[val_index], labels[val_index]
-        scaler = StandardScaler3D()
-        train_features = scaler.fit_transform(train_features)
-        val_features = scaler.transform(val_features)
-        train_features = np.moveaxis(train_features, 1, 2)
-        val_features = np.moveaxis(val_features, 1, 2)
+    gss_val = GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
+    relative_train_index, relative_val_index = next(gss_val.split(features[train_val_index], labels[train_val_index], groups[train_val_index]))
+    train_index = train_val_index[relative_train_index]
+    val_index = train_val_index[relative_val_index]
 
-        break
+    train_features, train_labels = features[train_index], labels[train_index]
+    val_features,  val_labels  = features[val_index],  labels[val_index]
+    test_features,  test_labels  = features[test_index],  labels[test_index]
+
+    scaler = StandardScaler3D()
+    train_features = scaler.fit_transform(train_features)
+    val_features  = scaler.transform(val_features)
+    test_features  = scaler.transform(test_features)
+
+    train_features = np.moveaxis(train_features, 1, 2)
+    val_features = np.moveaxis(val_features, 1, 2)
+    test_features  = np.moveaxis(test_features, 1, 2)
 
     train_features = torch.Tensor(train_features)
     val_features = torch.Tensor(val_features)
+    test_features = torch.Tensor(test_features)
+
     train_labels = torch.Tensor(train_labels)
     val_labels = torch.Tensor(val_labels)
+    test_labels = torch.Tensor(test_labels)
 
     train_labels = remap_np(train_labels)
-    val_labels   = remap_np(val_labels)
+    val_labels = remap_np(val_labels)
+    test_labels   = remap_np(test_labels)
 
-    return train_features, train_labels, val_features, val_labels
+    return train_features, train_labels, val_features, val_labels, test_features, test_labels

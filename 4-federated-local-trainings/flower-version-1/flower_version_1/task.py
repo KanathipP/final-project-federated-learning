@@ -10,7 +10,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.base import TransformerMixin, BaseEstimator
 
 #data cleaner
-import flower_version_1.motor_imaginary_train_data_cleaner as motor_imaginary_train_data_cleaner
+import flower_version_1.motor_imaginary_data_cleaner as motor_imaginary_data_cleaner
 
 #model
 from flower_version_1.model import EEGNet
@@ -26,41 +26,39 @@ class Net(EEGNet):
 
 # data pipeline
 def load_data(partition_id: int):
-    train_features, train_labels, val_features, val_labels = motor_imaginary_train_data_cleaner.pipeline(partition_id)
+    train_features, train_labels, val_features, val_labels, test_features, test_labels = motor_imaginary_data_cleaner.pipeline(partition_id)
     
     # create dataloader
     train_dataset = TensorDataset(train_features, train_labels)
     val_dataset = TensorDataset(val_features, val_labels)
-    train_dataloader = DataLoader(train_dataset, batch_size=32, shuffle=True)
-    val_dataloader = DataLoader(val_dataset, batch_size=32, shuffle=False)
-    return train_dataloader, val_dataloader
+    test_dataset = TensorDataset(test_features, test_labels)
+    train_dataloader = DataLoader(train_dataset, batch_size=4, shuffle=True)
+    val_dataloader = DataLoader(val_dataset, batch_size=4, shuffle=False)
+    test_dataloader = DataLoader(test_dataset, batch_size=4, shuffle=False)
 
+    return train_dataloader, val_dataloader, test_dataloader
 
-# =========================
-# Train / Test
-# =========================
-def train(net, train_dataloader, epochs, lr, device):
+def train(net, train_dataloader,val_dataloader, epochs, lr, device):
     net.to(device)
     criterion = torch.nn.CrossEntropyLoss().to(device)
-    optimizer = torch.optim.Adam(net.parameters(), lr=lr)
+
+    #train
     net.train()
+    optimizer = torch.optim.Adam(net.parameters(), lr=lr)
     running_loss = 0.0
     for _ in range(int(epochs)):
-        for images, labels in train_dataloader:  # images: (B,1,C,T)
+        for images, labels in train_dataloader: 
             images, labels = images.to(device), labels.to(device)
             optimizer.zero_grad()
-            logits = net(images)  # EEGNet ส่ง logits ออก
+            logits = net(images)  
             loss = criterion(logits, labels)
             loss.backward()
             optimizer.step()
             running_loss += loss.item()
-    return running_loss / max(len(train_dataloader), 1)
-
-
-@torch.no_grad()
-def test(net, val_dataloader, device):
-    net.to(device)
-    criterion = torch.nn.CrossEntropyLoss().to(device)
+    
+    train_loss = running_loss / max(len(train_dataloader), 1)
+    
+    # validation
     net.eval()
     total_loss, correct, total = 0.0, 0, 0
     for images, labels in val_dataloader:
@@ -70,4 +68,26 @@ def test(net, val_dataloader, device):
         pred = logits.argmax(dim=1)
         correct += (pred == labels).sum().item()
         total += images.size(0)
-    return total_loss / max(total, 1), correct / max(total, 1)
+    
+    val_loss = total_loss / max(total, 1)
+    val_accuracy = correct / max(total, 1)
+
+    return train_loss, val_loss, val_accuracy
+
+
+@torch.no_grad()
+def test(net, test_dataloader, device):
+    net.to(device)
+    criterion = torch.nn.CrossEntropyLoss().to(device)
+    net.eval()
+    total_loss, correct, total = 0.0, 0, 0
+    for images, labels in test_dataloader:
+        images, labels = images.to(device), labels.to(device)
+        logits = net(images)
+        total_loss += criterion(logits, labels).item() * images.size(0)
+        pred = logits.argmax(dim=1)
+        correct += (pred == labels).sum().item()
+        total += images.size(0)
+    test_loss = total_loss / max(total, 1)
+    test_accuracy = correct / max(total, 1)
+    return test_loss, test_accuracy

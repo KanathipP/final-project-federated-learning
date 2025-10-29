@@ -2,6 +2,7 @@ import torch
 from flwr.app import ArrayRecord, ConfigRecord, Context
 from flwr.serverapp import Grid, ServerApp
 from flwr.serverapp.strategy import FedAvg
+from flower_version_1.custom_aggregration_fn import custom_aggregration_fn
 
 from flower_version_1.task import Net
 
@@ -17,7 +18,7 @@ def main(grid: Grid, context: Context) -> None:
     global_model = Net()
     arrays = ArrayRecord(global_model.state_dict())
 
-    strategy = FedAvg(fraction_train=fraction_train)
+    strategy = FedAvg(fraction_train=fraction_train, evaluate_metrics_aggr_fn=custom_aggregration_fn)
 
     result = strategy.start(
         grid=grid,

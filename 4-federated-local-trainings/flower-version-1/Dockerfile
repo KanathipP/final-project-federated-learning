@@ -1,16 +1,10 @@
 # --------------------------------------------------------------------
-# Base image: lightweight Python with system libs we need for mne
-# We use python:3.11-slim instead of CUDA-enabled images to keep it light.
+# Base image: Python 3.11 slim, CPU only
 # --------------------------------------------------------------------
-FROM python:3.11-slim AS base
+FROM python:3.11-slim
 
 # --------------------------------------------------------------------
-# Set up OS-level deps (build + runtime)
-# - build-essential, gcc: needed for scipy/numpy/sklearn wheels if fallback to source
-# - libopenblas-dev / liblapack-dev: linear algebra backend
-# - libglib2.0-0 / libxext6 / libxrender1 / libsm6: common scientific stack deps
-# - curl: optional debug/health
-# We keep layer size small but realistic for mne/scikit-learn/torch CPU.
+# System deps for scientific stack (numpy/scipy/mne/sklearn/torch CPU)
 # --------------------------------------------------------------------
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
@@ -25,67 +19,52 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && rm -rf /var/lib/apt/lists/*
 
 # --------------------------------------------------------------------
-# Create a non-root user for runtime security.
-# We'll install libs as root, then drop to this user later.
+# Non-root runtime user
 # --------------------------------------------------------------------
 ARG APP_USER=flwr
 ARG APP_UID=1000
 RUN useradd --create-home --home-dir /app --uid ${APP_UID} ${APP_USER}
 
-# --------------------------------------------------------------------
-# Working directory for our app code
-# --------------------------------------------------------------------
 WORKDIR /app
 
 # --------------------------------------------------------------------
-# Copy only pyproject first, install deps.
-# This lets Docker cache the dependency layer unless pyproject changes.
-# We also remove flwr[simulation] if you're overriding that in pyproject and
-# want to control exact extras yourself (similar to your sed trick).
+# Copy dependency spec first for layer caching
+# --------------------------------------------------------------------
+COPY requirements.runtime.txt /app/requirements.runtime.txt
+
+# Upgrade pip first
+RUN python -m pip install --upgrade pip
+
+# 1. Install CPU-only torch (and optionally torchvision if you need it)
+#    We explicitly use the PyTorch CPU index here only for torch.
+#    If you DON'T need torchvision/torchaudio, you can drop them.
+RUN pip install --no-cache-dir \
+    torch==2.2.2+cpu \
+    torchvision==0.17.2+cpu \
+    --index-url https://download.pytorch.org/whl/cpu
+
+# 2. Install the rest (flwr, mne, sklearn, numpy, scipy, etc.) from PyPI default
+RUN pip install --no-cache-dir -r requirements.runtime.txt
+
+# --------------------------------------------------------------------
+# Copy project metadata and source
+# We still copy pyproject.toml because Flower's superexec reads config
+# from [tool.flwr.*] in that file at runtime.
 # --------------------------------------------------------------------
 COPY pyproject.toml /app/pyproject.toml
-
-# Optional: strip simulation extra if you had that hack in your existing Dockerfile
-# If you don't need this trick anymore, you can drop this RUN.
-RUN sed -i 's/.*flwr\[simulation\].*//' /app/pyproject.toml || true
-
-# Install project dependencies (will install flwr, torch CPU, mne, etc.)
-# We assume pyproject.toml declares them in [project.dependencies]
-RUN python -m pip install --upgrade pip && \
-    pip install --no-cache-dir .
-
-# --------------------------------------------------------------------
-# Copy the actual source code.
-# We copy only the Python package folder (flower_version_1) and anything else
-# needed at runtime by the client/server apps.
-# Data is NOT copied; that will be mounted as a volume at runtime.
-# --------------------------------------------------------------------
 COPY flower_version_1 /app/flower_version_1
 
 # --------------------------------------------------------------------
-# Environment variables:
-# - PYTHONUNBUFFERED: logs flush immediately (useful in Docker logs)
-# - DATA_ROOT: default data root inside the container
-#   Each client container will get its own /app/data/<partition_id> mounted.
+# Runtime env
 # --------------------------------------------------------------------
 ENV PYTHONUNBUFFERED=1 \
     DATA_ROOT=/app/data
 
-# --------------------------------------------------------------------
-# Expose a volume mount point for per-partition data.
-# This doesn't create data in the image, but documents that /app/data
-# is expected to be provided at runtime (-v ...:/app/data/<id>:ro).
-# --------------------------------------------------------------------
+# Data for each partition will be mounted here by docker-compose
 VOLUME ["/app/data"]
 
-# --------------------------------------------------------------------
-# Switch to the non-root user for runtime safety.
-# --------------------------------------------------------------------
+# Drop root for runtime safety
 USER ${APP_USER}
 
-# --------------------------------------------------------------------
-# Default entrypoint for Flower's superexec runtime.
-# You'll override behavior (server vs client, partition id, etc.)
-# using env vars and command args when you 'docker run'.
-# --------------------------------------------------------------------
+# Flower entrypoint: server_app / client_app will be given via `command` in compose
 ENTRYPOINT ["flower-superexec"]

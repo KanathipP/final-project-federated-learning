@@ -34,9 +34,9 @@ serverapp = "flower_version_1.server_app:app"
 clientapp = "flower_version_1.client_app:app"
 
 [tool.flwr.app.config]
-num-server-rounds = 3
-fraction-train = 0.5
-local-epochs = 1
+num-server-rounds = 10
+fraction-train = 1.0
+local-epochs = 5
 lr = 0.01
 
 [tool.flwr.federations]

@@ -18,11 +18,12 @@ def train(msg: Message, context: Context):
 
     # load data
     partition_id = context.node_config["partition-id"] + 1
-    train_dataloader, _ = load_data(partition_id)
+    train_dataloader, val_dataloader, _ = load_data(partition_id)
 
-    train_loss = train_fn(
+    train_loss, val_loss, val_accuracy = train_fn(
         model,
         train_dataloader,
+        val_dataloader,
         context.run_config["local-epochs"],
         msg.content["config"]["lr"],
         device,
@@ -31,6 +32,8 @@ def train(msg: Message, context: Context):
     model_record = ArrayRecord(model.state_dict())
     metrics = {
         "train_loss": train_loss,
+        "val_loss": val_loss,
+        "val_accuracy": val_accuracy,
         "num-examples": int(len(train_dataloader.dataset)),
     }
 
@@ -48,14 +51,15 @@ def evaluate(msg: Message, context: Context):
 
     # load data
     partition_id = context.node_config["partition-id"] + 1
-    _, val_dataloader = load_data(partition_id)
+    _, _, test_dataloader = load_data(partition_id)
 
-    eval_loss, eval_acc = test_fn(model, val_dataloader, device)
+    test_loss, test_acc = test_fn(net= model, test_dataloader= test_dataloader, device= device)
 
     metrics = {
-        "eval_loss": eval_loss,
-        "eval_acc": eval_acc,
-        "num-examples": int(len(val_dataloader.dataset)),
+        "partition_id": partition_id,
+        "eval_loss": test_loss,
+        "eval_acc": test_acc,
+        "num-examples": int(len(test_dataloader.dataset)),
     }
     metric_record = MetricRecord(metrics)
     content = RecordDict({"metrics": metric_record})
