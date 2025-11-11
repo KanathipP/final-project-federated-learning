@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: superlink
+  namespace: flwr
+  labels:
+    app.kubernetes.io/name: superlink
+    app.kubernetes.io/component: superlink
+    app: superlink # <-- เพิ่ม
+    role: superlink # <-- เพิ่ม
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: superlink
+      app.kubernetes.io/component: superlink
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: superlink
+        app.kubernetes.io/component: superlink
+        app: superlink # <-- เพิ่ม
+        role: superlink # <-- เพิ่ม
+    spec:
+      containers:
+        - name: superlink
+          image: flwr/superlink:1.22.0
+          args: ["--insecure"]
+          ports:
+            - containerPort: 9091
+            - containerPort: 9092
+            - containerPort: 9093

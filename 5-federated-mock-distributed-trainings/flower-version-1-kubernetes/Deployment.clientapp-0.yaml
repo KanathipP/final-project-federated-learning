@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: superexec-clientapp-0
+  namespace: flwr
+  labels:
+    app.kubernetes.io/name: superexec
+    app.kubernetes.io/component: clientapp
+    app.kubernetes.io/instance: "0"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: superexec
+      app.kubernetes.io/component: clientapp
+      app.kubernetes.io/instance: "0"
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: superexec
+        app.kubernetes.io/component: clientapp
+        app.kubernetes.io/instance: "0"
+    spec:
+      containers:
+        - name: superexec
+          image: my-superexec:v6
+          imagePullPolicy: IfNotPresent
+          command: ["flower-superexec"]
+          args:
+            [
+              "--insecure",
+              "--plugin-type=clientapp",
+              "--appio-api-address=supernode-0:9094",
+            ]
+          env:
+            - { name: FLWR_LOG_LEVEL, value: INFO }
+            - { name: DATA_DIR, value: /data }
+          volumeMounts:
+            - name: data-1
+              mountPath: /data/1
+              readOnly: true
+      volumes:
+        - name: data-1
+          persistentVolumeClaim:
+            claimName: data-1-pv

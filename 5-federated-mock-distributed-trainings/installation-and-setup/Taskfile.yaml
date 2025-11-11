@@ -1,0 +1,28 @@
+version: "3"
+
+env:
+  BORDER: double
+  BORDER_FOREGROUND: "212"
+  PADDING: "1 1"
+  MARGIN: "1 1"
+
+tasks:
+  kind:01-generate-config:
+    cmds:
+      - REPLACE_WITH_ABSOLUTE_PATH=${PWD} envsubst < kind-config.yaml.TEMPLATE > kind-config.yaml
+    desc: "Generate kind config with local absolute paths for PV mounts"
+
+  kind:02-create-cluster:
+    cmds:
+      - kind create cluster --config kind-config.yaml
+    desc: Create a Kubernetes cluster using kind
+
+  kind:03-run-cloud-provider-kind:
+    desc: "Run sigs.k8s.io/cloud-provider-kind@latest to enable load balancer services with KinD"
+    cmds:
+      - sudo cloud-provider-kind
+
+  kind:04-delete-cluster:
+    cmds:
+      - kind delete cluster
+    desc: Delete and existing a kind Kubernetes cluster

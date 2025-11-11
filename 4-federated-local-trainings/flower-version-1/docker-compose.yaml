@@ -1,0 +1,289 @@
+# compose.yaml
+# Federated: 1x SuperLink + 9x SuperNode + SuperExecs (ServerApp/ClientApp)
+# สไตล์เดียวกับไฟล์เก่าของคุณ แต่ขยายเป็น 9 partitions และใส่ volumes/env ให้แต่ละ client
+
+name: flwr-federated
+version: "3.9"
+
+services:
+  # 1) Controller
+  superlink:
+    image: flwr/superlink:1.22.0
+    container_name: superlink
+    command:
+      - --insecure
+    ports:
+      - "9091:9091" # ServerAppIO
+      - "9092:9092" # Fleet
+      - "9093:9093" # Control/Exec
+    networks: [flwr]
+
+  # -------- SuperNodes (partition 0..8 / num-partitions=9) --------
+  supernode-0:
+    image: flwr/supernode:1.22.0
+    container_name: supernode-0
+    depends_on: [superlink]
+    command:
+      - --insecure
+      - --superlink=superlink:9092
+      - --node-config=partition-id=0 num-partitions=9
+      - --clientappio-api-address=0.0.0.0:9094
+      - --isolation=process
+    networks: [flwr]
+
+  supernode-1:
+    image: flwr/supernode:1.22.0
+    container_name: supernode-1
+    depends_on: [superlink]
+    command:
+      - --insecure
+      - --superlink=superlink:9092
+      - --node-config=partition-id=1 num-partitions=9
+      - --clientappio-api-address=0.0.0.0:9095
+      - --isolation=process
+    networks: [flwr]
+
+  supernode-2:
+    image: flwr/supernode:1.22.0
+    container_name: supernode-2
+    depends_on: [superlink]
+    command:
+      - --insecure
+      - --superlink=superlink:9092
+      - --node-config=partition-id=2 num-partitions=9
+      - --clientappio-api-address=0.0.0.0:9096
+      - --isolation=process
+    networks: [flwr]
+
+  supernode-3:
+    image: flwr/supernode:1.22.0
+    container_name: supernode-3
+    depends_on: [superlink]
+    command:
+      - --insecure
+      - --superlink=superlink:9092
+      - --node-config=partition-id=3 num-partitions=9
+      - --clientappio-api-address=0.0.0.0:9097
+      - --isolation=process
+    networks: [flwr]
+
+  supernode-4:
+    image: flwr/supernode:1.22.0
+    container_name: supernode-4
+    depends_on: [superlink]
+    command:
+      - --insecure
+      - --superlink=superlink:9092
+      - --node-config=partition-id=4 num-partitions=9
+      - --clientappio-api-address=0.0.0.0:9098
+      - --isolation=process
+    networks: [flwr]
+
+  supernode-5:
+    image: flwr/supernode:1.22.0
+    container_name: supernode-5
+    depends_on: [superlink]
+    command:
+      - --insecure
+      - --superlink=superlink:9092
+      - --node-config=partition-id=5 num-partitions=9
+      - --clientappio-api-address=0.0.0.0:9099
+      - --isolation=process
+    networks: [flwr]
+
+  supernode-6:
+    image: flwr/supernode:1.22.0
+    container_name: supernode-6
+    depends_on: [superlink]
+    command:
+      - --insecure
+      - --superlink=superlink:9092
+      - --node-config=partition-id=6 num-partitions=9
+      - --clientappio-api-address=0.0.0.0:9100
+      - --isolation=process
+    networks: [flwr]
+
+  supernode-7:
+    image: flwr/supernode:1.22.0
+    container_name: supernode-7
+    depends_on: [superlink]
+    command:
+      - --insecure
+      - --superlink=superlink:9092
+      - --node-config=partition-id=7 num-partitions=9
+      - --clientappio-api-address=0.0.0.0:9101
+      - --isolation=process
+    networks: [flwr]
+
+  supernode-8:
+    image: flwr/supernode:1.22.0
+    container_name: supernode-8
+    depends_on: [superlink]
+    command:
+      - --insecure
+      - --superlink=superlink:9092
+      - --node-config=partition-id=8 num-partitions=9
+      - --clientappio-api-address=0.0.0.0:9102
+      - --isolation=process
+    networks: [flwr]
+
+  # 4) SuperExec สำหรับรัน ServerApp
+  superexec-serverapp:
+    image: my-superexec:v6
+    container_name: superexec-serverapp
+    depends_on: [superlink]
+    entrypoint: ["flower-superexec"]
+    command:
+      - --insecure
+      - --plugin-type=serverapp
+      - --appio-api-address=superlink:9091
+    environment:
+      FLWR_LOG_LEVEL: INFO
+    networks: [flwr]
+
+  # clientapp-0 -> ./data/1 -> /data/1
+  superexec-clientapp-0:
+    image: my-superexec:v6
+    container_name: superexec-clientapp-0
+    depends_on: [supernode-0]
+    entrypoint: ["flower-superexec"]
+    command:
+      [
+        "--insecure",
+        "--plugin-type=clientapp",
+        "--appio-api-address=supernode-0:9094",
+      ]
+    environment:
+      FLWR_LOG_LEVEL: INFO
+      DATA_DIR: /data
+    volumes:
+      - ./data/1:/data/1:ro
+    networks: [flwr]
+
+  # clientapp-1 -> ./data/2 -> /data/2
+  superexec-clientapp-1:
+    image: my-superexec:v6
+    container_name: superexec-clientapp-1
+    depends_on: [supernode-1]
+    entrypoint: ["flower-superexec"]
+    command:
+      [
+        "--insecure",
+        "--plugin-type=clientapp",
+        "--appio-api-address=supernode-1:9095",
+      ]
+    environment:
+      FLWR_LOG_LEVEL: INFO
+      DATA_DIR: /data
+    volumes:
+      - ./data/2:/data/2:ro
+    networks: [flwr]
+
+  superexec-clientapp-2:
+    image: my-superexec:v6
+    container_name: superexec-clientapp-2
+    depends_on: [supernode-2]
+    entrypoint: ["flower-superexec"]
+    command:
+      [
+        "--insecure",
+        "--plugin-type=clientapp",
+        "--appio-api-address=supernode-2:9096",
+      ]
+    environment: { FLWR_LOG_LEVEL: INFO, DATA_DIR: /data }
+    volumes: [./data/3:/data/3:ro]
+    networks: [flwr]
+
+  superexec-clientapp-3:
+    image: my-superexec:v6
+    container_name: superexec-clientapp-3
+    depends_on: [supernode-3]
+    entrypoint: ["flower-superexec"]
+    command:
+      [
+        "--insecure",
+        "--plugin-type=clientapp",
+        "--appio-api-address=supernode-3:9097",
+      ]
+    environment: { FLWR_LOG_LEVEL: INFO, DATA_DIR: /data }
+    volumes: [./data/4:/data/4:ro]
+    networks: [flwr]
+
+  superexec-clientapp-4:
+    image: my-superexec:v6
+    container_name: superexec-clientapp-4
+    depends_on: [supernode-4]
+    entrypoint: ["flower-superexec"]
+    command:
+      [
+        "--insecure",
+        "--plugin-type=clientapp",
+        "--appio-api-address=supernode-4:9098",
+      ]
+    environment: { FLWR_LOG_LEVEL: INFO, DATA_DIR: /data }
+    volumes: [./data/5:/data/5:ro]
+    networks: [flwr]
+
+  superexec-clientapp-5:
+    image: my-superexec:v6
+    container_name: superexec-clientapp-5
+    depends_on: [supernode-5]
+    entrypoint: ["flower-superexec"]
+    command:
+      [
+        "--insecure",
+        "--plugin-type=clientapp",
+        "--appio-api-address=supernode-5:9099",
+      ]
+    environment: { FLWR_LOG_LEVEL: INFO, DATA_DIR: /data }
+    volumes: [./data/6:/data/6:ro]
+    networks: [flwr]
+
+  superexec-clientapp-6:
+    image: my-superexec:v6
+    container_name: superexec-clientapp-6
+    depends_on: [supernode-6]
+    entrypoint: ["flower-superexec"]
+    command:
+      [
+        "--insecure",
+        "--plugin-type=clientapp",
+        "--appio-api-address=supernode-6:9100",
+      ]
+    environment: { FLWR_LOG_LEVEL: INFO, DATA_DIR: /data }
+    volumes: [./data/7:/data/7:ro]
+    networks: [flwr]
+
+  superexec-clientapp-7:
+    image: my-superexec:v6
+    container_name: superexec-clientapp-7
+    depends_on: [supernode-7]
+    entrypoint: ["flower-superexec"]
+    command:
+      [
+        "--insecure",
+        "--plugin-type=clientapp",
+        "--appio-api-address=supernode-7:9101",
+      ]
+    environment: { FLWR_LOG_LEVEL: INFO, DATA_DIR: /data }
+    volumes: [./data/8:/data/8:ro]
+    networks: [flwr]
+
+  # wrap: clientapp-8 -> ./data/0 -> /data/0
+  superexec-clientapp-8:
+    image: my-superexec:v6
+    container_name: superexec-clientapp-8
+    depends_on: [supernode-8]
+    entrypoint: ["flower-superexec"]
+    command:
+      [
+        "--insecure",
+        "--plugin-type=clientapp",
+        "--appio-api-address=supernode-8:9102",
+      ]
+    environment: { FLWR_LOG_LEVEL: INFO, DATA_DIR: /data }
+    volumes: [./data/9:/data/9:ro]
+    networks: [flwr]
+
+networks:
+  flwr: {}

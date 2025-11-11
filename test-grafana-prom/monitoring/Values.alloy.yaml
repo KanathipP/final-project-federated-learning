@@ -1,0 +1,67 @@
+controller:
+  type: daemonset
+
+alloy:
+  enableReporting: false
+
+  configMap:
+    create: true
+    content: |-
+      logging {
+        level  = "info"
+        format = "logfmt"
+      }
+
+      // เขียน log ไปที่ Loki gateway ใน namespace monitoring
+      loki.write "default" {
+        endpoint {
+          url = "http://loki-gateway.monitoring.svc.cluster.local/loki/api/v1/push"
+        }
+      }
+
+      // discover pods ทั้งคลัสเตอร์
+      discovery.kubernetes "pod" {
+        role = "pod"
+      }
+
+      // rewrite labels ให้ query ง่ายขึ้น + ใส่ federated labels
+      discovery.relabel "pod_logs" {
+        targets = discovery.kubernetes.pod.targets
+
+        rule {
+          source_labels = ["__meta_kubernetes_namespace"]
+          action        = "replace"
+          target_label  = "namespace"
+        }
+
+        rule {
+          source_labels = ["__meta_kubernetes_pod_name"]
+          action        = "replace"
+          target_label  = "pod"
+        }
+
+        rule {
+          source_labels = ["__meta_kubernetes_pod_container_name"]
+          action        = "replace"
+          target_label  = "container"
+        }
+
+        // federated learning labels
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_fl_client_id"]
+          action        = "replace"
+          target_label  = "fl_client_id"
+        }
+
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_role"]
+          action        = "replace"
+          target_label  = "role"
+        }
+      }
+
+      // tail logs จาก pods ตาม targets หลัง relabel แล้ว ส่งตรงไปที่ loki.write
+      loki.source.kubernetes "pod_logs" {
+        targets    = discovery.relabel.pod_logs.output
+        forward_to = [loki.write.default.receiver]
+      }

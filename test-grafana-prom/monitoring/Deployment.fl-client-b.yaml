@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fl-client-b
+  namespace: monitoring
+  labels:
+    app: fl-client
+    fl-client-id: client-b
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fl-client
+      fl-client-id: client-b
+  template:
+    metadata:
+      labels:
+        app: fl-client
+        fl-client-id: client-b
+        role: federated-client
+    spec:
+      containers:
+        - name: fl-client
+          image: kanathipz/test-client:0.1.0
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: CLIENT_ID
+              value: "client-b"
+            - name: ROUNDS
+              value: "20"
+            - name: SLEEP_BETWEEN_RUNS
+              value: "5"
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+            limits:
+              cpu: "1"
+              memory: "512Mi"

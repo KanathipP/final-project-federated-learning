@@ -1,0 +1,36 @@
+# values-kube-prometheus-stack.yaml
+# namespace: monitoring
+
+grafana:
+  enabled: true
+
+  adminUser: admin
+  adminPassword: prom-operator
+
+  # เพิ่ม Loki เป็น data source (ต่อไป Loki/gateway จะอยู่ใน namespace เดียวกัน)
+  additionalDataSources:
+    - name: Loki
+      type: loki
+      uid: loki
+      access: proxy
+      url: http://loki-gateway.monitoring.svc.cluster.local
+      jsonData:
+        maxLines: 1000
+      editable: true
+
+  sidecar:
+    datasources:
+      enabled: true
+    dashboards:
+      enabled: true
+
+kubeStateMetrics:
+  enabled: true
+
+nodeExporter:
+  enabled: true
+
+prometheus:
+  prometheusSpec:
+    scrapeInterval: 15s
+    evaluationInterval: 15s

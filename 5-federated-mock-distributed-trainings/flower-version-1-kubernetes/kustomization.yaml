@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: flwr
+resources:
+  - Namespace.flwr.yaml
+  - Service.superlink.yaml
+  - Deployment.superlink.yaml
+  - Service.supernode-0.yaml
+  - Deployment.supernode-0.yaml
+  - Service.supernode-1.yaml
+  - Deployment.supernode-1.yaml
+  - Deployment.serverapp.yaml
+  - PV.data-1.yaml
+  - PVC.data-1.yaml
+  - PV.data-2.yaml
+  - PVC.data-2.yaml
+  - Deployment.clientapp-0.yaml
+  - Deployment.clientapp-1.yaml

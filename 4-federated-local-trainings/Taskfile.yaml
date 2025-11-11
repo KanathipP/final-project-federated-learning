@@ -1,0 +1,61 @@
+version: "3"
+
+env:
+  BORDER: double
+  BORDER_FOREGROUND: "212"
+  PADDING: "1 1"
+  MARGIN: "1 1"
+
+tasks:
+  copy-motor-imaginary-data:
+    desc: "📦 Copy raw motor imagery .gdf files into {app_name}/data/{1..9}/"
+    cmds:
+      # STEP 1: Select an existing FLWR app directory interactively via gum
+      - cmd: |
+          DIRS=($(ls -d */ 2>/dev/null | sed 's:/$::'))
+
+          # Abort if no directories are found in the current working directory
+          if [ ${#DIRS[@]} -eq 0 ]; then
+            gum style "❌ No directories found in current folder. Please create your FLWR app directory first."
+            exit 1
+          fi
+
+          # Present a clean, interactive selection menu using gum
+          APP_NAME=$(printf "%s\n" "${DIRS[@]}" | gum choose --cursor-prefix "👉 " --header "📂 Select an existing FLWR app directory")
+
+          # Persist the selected directory name for subsequent task steps
+          echo "$APP_NAME" > .task_app_name
+        silent: true
+
+      # STEP 2: Display a formatted preview of the target copy location
+      - cmd: |
+          APP_NAME=$(cat .task_app_name)
+          gum style \
+            --border $BORDER \
+            --border-foreground $BORDER_FOREGROUND \
+            --margin "$MARGIN" \
+            --padding "$PADDING" \
+            "📂 Preparing to copy raw EEG data into \"$APP_NAME/data/{1..9}/\""
+        silent: true
+
+      # STEP 3: Execute the copy process with a progress spinner
+      - cmd: |
+          APP_NAME=$(cat .task_app_name)
+          gum spin --spinner dot --title "Copying data into $APP_NAME/data/ ..." -- \
+            python ./motor_imaginary_data_splitter.py "$APP_NAME"
+        silent: true
+
+      # STEP 4: Display a success message upon completion
+      - cmd: |
+          APP_NAME=$(cat .task_app_name)
+          gum style \
+            --border $BORDER \
+            --border-foreground $BORDER_FOREGROUND \
+            --margin "$MARGIN" \
+            --padding "$PADDING" \
+            "✅ Done! Successfully copied raw motor imagery data into \"$APP_NAME/data/\""
+        silent: true
+
+      # STEP 5: Clean up temporary artifacts generated during execution
+      - cmd: rm -f .task_app_name
+        silent: true

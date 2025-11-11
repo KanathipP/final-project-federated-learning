@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: superexec-serverapp
+  namespace: flwr
+  labels:
+    app.kubernetes.io/name: superexec
+    app.kubernetes.io/component: serverapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: superexec
+      app.kubernetes.io/component: serverapp
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: superexec
+        app.kubernetes.io/component: serverapp
+    spec:
+      containers:
+        - name: superexec
+          image: my-superexec:v6
+          imagePullPolicy: IfNotPresent
+          command: ["flower-superexec"]
+          args:
+            - --insecure
+            - --plugin-type=serverapp
+            - --appio-api-address=superlink:9091
+          env:
+            - name: FLWR_LOG_LEVEL
+              value: INFO

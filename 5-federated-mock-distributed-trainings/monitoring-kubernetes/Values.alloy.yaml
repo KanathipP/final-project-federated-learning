@@ -1,0 +1,91 @@
+# values-alloy.yaml
+# namespace: monitoring
+
+controller:
+  type: daemonset     # 1 Alloy ต่อ 1 node
+
+rbac:
+  create: true        # ให้ chart สร้าง ClusterRole/Binding สำหรับอ่าน pods/pods/log เอง
+
+alloy:
+  enableReporting: false
+
+  # ใช้ loki.source.kubernetes → ไม่ต้อง mount /var/log
+  mounts:
+    varlog: false
+
+  configMap:
+    create: true
+    content: |-
+      logging {
+        level  = "info"
+        format = "logfmt"
+      }
+
+      // เขียน log ไป Loki gateway ใน namespace monitoring
+      loki.write "default" {
+        endpoint {
+          url = "http://loki-gateway.monitoring.svc.cluster.local/loki/api/v1/push"
+        }
+      }
+
+      // discover pods ทั้งคลัสเตอร์ (role=pod)
+      discovery.kubernetes "pod" {
+        role = "pod"
+      }
+
+      // ทำ relabel: filter namespace=flwr + สร้าง label namespace/pod/app/role/fl_client_id
+      discovery.relabel "pod_logs" {
+        targets = discovery.kubernetes.pod.targets
+
+        // 1) keep เฉพาะ namespace flwr
+        rule {
+          source_labels = ["__meta_kubernetes_namespace"]
+          regex         = "flwr"
+          action        = "keep"
+        }
+
+        // 2) labels เพิ่มเติมสำหรับ query
+        rule {
+          source_labels = ["__meta_kubernetes_namespace"]
+          action        = "replace"
+          target_label  = "namespace"
+        }
+
+        rule {
+          source_labels = ["__meta_kubernetes_pod_name"]
+          action        = "replace"
+          target_label  = "pod"
+        }
+
+        rule {
+          source_labels = ["__meta_kubernetes_pod_container_name"]
+          action        = "replace"
+          target_label  = "container"
+        }
+
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_app"]
+          action        = "replace"
+          target_label  = "app"
+        }
+
+        // federated-learning labels (อ่านจาก pod labels)
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_role"]
+          action        = "replace"
+          target_label  = "role"
+        }
+
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_fl_client_id"]
+          action        = "replace"
+          target_label  = "fl_client_id"
+        }
+      }
+
+      // tail logs จาก pods หลัง relabel แล้ว ส่งไป Loki
+      loki.source.kubernetes "pod_logs" {
+        targets    = discovery.relabel.pod_logs.output
+        forward_to = [loki.write.default.receiver]
+      }

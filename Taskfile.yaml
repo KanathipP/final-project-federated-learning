@@ -1,0 +1,6 @@
+version: "3"
+
+includes:
+  setup:
+    taskfile: ./5-federated-mock-distributed-trainings/installation-and-setup/Taskfile.yaml
+    dir: ./5-federated-mock-distributed-trainings/installation-and-setup/

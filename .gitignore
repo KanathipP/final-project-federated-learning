@@ -1,0 +1,20 @@
+#Ignore pycache
+__pycache__/
+*/__pycache__/
+
+#Ignore data (it's too big)
+/0-raw-data/motor-imaginary/BCICIV_2a_gdf.zip
+/0-raw-data/motor-imaginary/data
+
+#Ignore lightning logs
+/3-centralized-trainings/lightning_logs
+
+**/.venv/
+
+# โฟลเดอร์ชื่อ data ทุกที่ ทุกชั้น
+data/
+**/data/**
+
+# ถ้าจะกันไฟล์ .gdf ทั้งหมดด้วย
+*.gdf
+**/*.gdf

@@ -1,0 +1,37 @@
+grafana:
+  enabled: true
+
+  # admin login
+  adminUser: admin
+  adminPassword: prom-operator
+
+  # add Loki as a data source
+  additionalDataSources:
+    - name: Loki
+      type: loki
+      uid: loki
+      access: proxy
+      url: http://loki-gateway.monitoring.svc.cluster.local
+      jsonData:
+        maxLines: 1000
+      editable: true
+
+  sidecar:
+    datasources:
+      enabled: true
+    dashboards:
+      enabled: true
+
+kubeStateMetrics:
+  enabled: true
+
+nodeExporter:
+  enabled: true
+
+prometheus:
+  prometheusSpec:
+    scrapeInterval: 15s
+    evaluationInterval: 15s
+
+promtail:
+  enabled: false

@@ -1,0 +1,13 @@
+# three node (two workers) cluster config
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+  - role: worker
+    extraMounts:
+      - hostPath: /home/kanathipp/Stuffs/Works/final-project-federated-learning/5-federated-mock-distributed-trainings/installation-and-setup/kind-bind-mount-1
+        containerPath: /some/path/in/container
+  - role: worker
+    extraMounts:
+      - hostPath: /home/kanathipp/Stuffs/Works/final-project-federated-learning/5-federated-mock-distributed-trainings/installation-and-setup/kind-bind-mount-2
+        containerPath: /some/path/in/container
