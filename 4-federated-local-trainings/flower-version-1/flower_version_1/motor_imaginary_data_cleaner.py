@@ -9,6 +9,8 @@ from sklearn.model_selection import StratifiedShuffleSplit  # <-- เปลี�
 from sklearn.preprocessing import StandardScaler
 from sklearn.base import TransformerMixin, BaseEstimator
 
+import flower_version_1.log_printer as log_printer
+
 mne.set_log_level("ERROR")
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -59,12 +61,12 @@ def remap_np(y: torch.Tensor) -> torch.Tensor:
 
 
 def pipeline(partition_id: int):
-    print("[Pipeline] | Running")
-    print("[Pipeline] | Start Reading Data..")
+    log_printer.readline("task:[load_data] | Motor Imagidary Data Pipeline is Running")
+    log_printer.readline("task:[load_data] | Start Reading Data..")
     features, labels = read_data(Path(DATA_DIR/ f'{partition_id}/A0{partition_id}T.gdf'))
-    print("[Pipeline] | Read Data Successfully")
+    log_printer.readline("task:[load_data] | Read Data Successfully")
     features = np.moveaxis(features, 1, 2)  
-    print("[Pipeline] | Start Transforming Data..")
+    log_printer.readline("task:[load_data] | Start Transforming Data..")
     sss_test = StratifiedShuffleSplit(n_splits=1,test_size=0.2, random_state=42)
     train_val_index, test_index = next(sss_test.split(features, labels))
 
@@ -97,8 +99,8 @@ def pipeline(partition_id: int):
     train_labels = remap_np(train_labels)
     val_labels = remap_np(val_labels)
     test_labels   = remap_np(test_labels)
-    print("[Pipeline] | Transforming Data Finished")
-    print("[Pipeline] | Finished, Sending Data To Function Caller...")
+    log_printer.readline("task:[load_data] | Transforming Data Finished")
+    log_printer.readline("task:[load_data] | Finished, Sending Data To Function Caller...")
     return train_features, train_labels, val_features, val_labels, test_features, test_labels
 
 

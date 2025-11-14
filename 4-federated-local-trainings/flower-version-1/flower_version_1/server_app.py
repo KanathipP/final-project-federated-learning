@@ -12,6 +12,7 @@ app = ServerApp()
 
 @app.main()
 def main(grid: Grid, context: Context) -> None:
+    print("hello from server")
     num_rounds: int = context.run_config["num-server-rounds"]
     fraction_train: float = context.run_config["fraction-train"]
     lr: float = context.run_config["lr"]
@@ -24,6 +25,13 @@ def main(grid: Grid, context: Context) -> None:
         {
             "lr": lr,
             "local-epochs": local_epochs,
+            "fl-training-id": "hellodiwa",
+        }
+    )
+
+    evaluate_config = ConfigRecord(
+        {
+            "fl-training-id": "hellodiwa",
         }
     )
 
@@ -33,6 +41,7 @@ def main(grid: Grid, context: Context) -> None:
         grid=grid,
         initial_arrays=arrays,
         train_config=train_config,
+        evaluate_config=evaluate_config,
         num_rounds=num_rounds,
     )
 
